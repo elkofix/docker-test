@@ -1,3 +1,75 @@
+# Creacion de Dockerfile
+
+Dado que el comando de ejecución en desarrollo es ```npm run dev```
+
+```
+# Usa una imagen base ligera de Node.js 18
+FROM node:18-alpine  
+
+# Establece el directorio de trabajo en el contenedor
+WORKDIR /app  
+
+# Copia y instala solo las dependencias antes de agregar el código
+COPY package.json package-lock.json ./  
+RUN npm install --frozen-lockfile  
+
+# Copia el resto de los archivos de la aplicación
+COPY . .  
+
+# Expone el puerto que usará la aplicación
+EXPOSE 3000  
+
+# Inicia la aplicación en modo desarrollo
+CMD ["npm", "run", "dev"]  
+```
+
+Genero un access token con permisos de lectura y escritura de mi cuenta de docker y los creo como secrets para poder usarlos en el pipeline de manera segura
+
+DOCKER_PASS: dckr_pat_o590cUCl7iQKOBDXBVA6vMsoj1g
+DOCKER_USER: elkofix
+
+![alt text](image.png)
+
+![alt text](image-1.png)
+
+Ahora creo el workflow para construir la imagen, loguearse y pushear la imagen en ```.github/workflows/```, con el nombre ```push.yml``
+
+```
+name: Docker Build & Push
+
+on:
+  push:
+    branches:
+      - main # Este workflow se ejecuta cada vez que se realiza un push en la rama "main".
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest # El job se ejecuta en un entorno con Ubuntu como sistema operativo.
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        # Obtiene el codigo en el agente
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+        # Inicia sesión en Docker Hub utilizando credenciales almacenadas en los secretos del repositorio.
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USER }}/mi-aplicacion:latest .
+        # Construye una imagen de Docker usando el Dockerfile del repositorio
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USER }}/mi-aplicacion:latest
+        # Sube la imagen construida al registro de Docker Hub.
+```
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
